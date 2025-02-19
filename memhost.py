@@ -3,6 +3,7 @@ import json
 import subprocess
 from beautifultable import BeautifulTable, BTRowCollection
 import sys
+import validators
 
 memhost_filepath = os.path.expanduser("~") + "/memhost"
 
@@ -55,35 +56,79 @@ if len(sys.argv) > 1:
         connect(data["servers"][sys.argv[1]])
 show_all_servers(data["servers"])
 
+
+def InputWithoutInterrup(text, retry=False):
+    if not retry:
+        try: return input(text)
+        except KeyboardInterrupt:
+            print()
+            return None
+
+    while True:
+        try: return input(text)
+        except KeyboardInterrupt:
+            print()
+
+
+def ssh_copy_id(server):
+    subprocess.run(['bash', '-l', 'ssh-copy-id', f'{server["username"]}@{server["host"]}'])
+
+
 while True:
-    com = input(">> ")
+    com = InputWithoutInterrup(">> ", retry=True)
     if com == "add":
-        name = input("Name: ")
-        username = input("Username: ")
-        host = input("Host: ")
-        description = input("Description: ")
+        name = InputWithoutInterrup("Name: ")
+        if not name: continue
+
+        username = InputWithoutInterrup("Username (leave empty for root): ")
+        if username is None: continue
+        if username == '': username = 'root'
+
+        host = InputWithoutInterrup("Host: ")
+        if host is None: continue
+        if not validators.ipv4(host) and not validators.domain(host):
+            print("Invalid host")
+            continue
+
+        description = InputWithoutInterrup("Description: ")
+        if description is None: continue
+
         data["servers"][name] = {"username": username,
                                  "host": host,
                                  "description": description}
         server = data["servers"][name]
-        subprocess.run(['bash', '-l', 'ssh-copy-id', f'{server["username"]}@{server["host"]}'])
+        ssh_copy_id(server)
         data_upd(data)
         connect(server)
         continue
 
     if com == "del":
-        name = input("Name: ")
+        name = InputWithoutInterrup("Name: ")
+        if name is None: continue
         if name in data["servers"]:
             print("Deleted.")
             del data["servers"][name]
             data_upd(data)
-        else:
-            print("Not found.")
+        else: print("Server not found.")
         continue
 
     if com == "ls":
         show_all_servers(data["servers"])
         continue
+
+    if com == "copyid":
+        name = InputWithoutInterrup("Name: ")
+        if name is None: continue
+        if name in data["servers"]: ssh_copy_id(data["servers"][name])
+        else: print("Server not found.")
+        continue
+
+    if com == "help":
+        print("add - add server\ndel - delete server\nls - list of all your servers\ncopyid - throw ssh-copy-id to server\nexit - stop program")
+        continue
+
+    if com == "exit":
+        sys.exit()
 
     if com in data["servers"]:
         connect(data["servers"][com])
