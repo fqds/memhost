@@ -1,8 +1,7 @@
 import os
 import json
 import subprocess
-from pathlib import Path
-from beautifultable import BeautifulTable
+from beautifultable import BeautifulTable, BTRowCollection
 import sys
 
 memhost_filepath = os.path.expanduser("~") + "/memhost"
@@ -28,15 +27,12 @@ def data_upd(data):
 
 
 def connect(server):
-    # subprocess.run(["cmd"])
-    # print(server["password"])
     subprocess.run(['ssh', f'{server["username"]}@{server["host"]}'])
 
 
 def show_all_servers(servers):
-    # print("Saved Hosts:")
-
     table = BeautifulTable()
+    table_collection = BTRowCollection(table)
     table_data = ["", "", ""]
     if servers:
 
@@ -47,7 +43,7 @@ def show_all_servers(servers):
         table_data[0] = table_data[0][1:]
         table_data[1] = table_data[1][1:]
         table_data[2] = table_data[2][1:]
-        table.append_row(table_data)
+        table_collection.append(table_data)
         print(table)
     else:
         print("There's no servers")
